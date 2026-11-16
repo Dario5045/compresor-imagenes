@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Compresor de imágenes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v6h6M20 10V4h-6M4 20l7-7M20 4l-7 7"/></svg>
+      </div>
+      <div>
+        <h1>Compresor de imágenes</h1>
+        <p>Reduce el peso sin perder nitidez</p>
+      </div>
+    </div>
+    <div class="privacy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Tus imágenes no salen de tu dispositivo
+    </div>
+  </header>
+
+  <!-- Espacio publicitario superior (leaderboard 728×90 / móvil 320×100) -->
+  <aside class="ad-container ad-top" aria-label="Publicidad">
+    <span class="ad-label">Publicidad</span>
+    <div class="ad-slot" id="ad-top" data-placeholder="Espacio para banner 728×90"></div>
+  </aside>
+
+  <main class="layout">
+
+    <!-- Columna izquierda: carga y lista -->
+    <section class="card" aria-label="Cargar imágenes">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" multiple aria-label="Seleccionar imágenes">
+        <div class="drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        </div>
+        <p class="drop-title">Arrastra tus imágenes aquí</p>
+        <p class="drop-sub">o elígelas desde tu equipo</p>
+        <span class="btn drop-btn">Seleccionar archivos</span>
+        <div class="formats" aria-label="Formatos admitidos">
+          <span class="chip">PNG</span><span class="chip">JPG</span><span class="chip">WebP</span>
+        </div>
+      </div>
+
+      <p class="notice" id="notice" role="status" hidden></p>
+
+      <div class="preview" id="preview" hidden>
+        <div class="preview-stage">
+          <canvas id="previewCanvas" role="img" aria-label="Vista previa de la imagen seleccionada"></canvas>
+        </div>
+        <dl class="preview-info">
+          <div><dt>Archivo</dt><dd id="pvName">-</dd></div>
+          <div class="size"><dt>Peso original</dt><dd id="pvSize">-</dd></div>
+          <div><dt>Dimensiones</dt><dd id="pvDims">-</dd></div>
+          <div><dt>Formato</dt><dd id="pvType">-</dd></div>
+          <div class="size"><dt>Peso comprimido</dt><dd id="pvNew">-</dd></div>
+          <div><dt>Reducción</dt><dd id="pvSaved">-</dd></div>
+        </dl>
+        <button class="btn" id="pvDownload" type="button" hidden>Descargar imagen optimizada</button>
+      </div>
+
+      <div class="files-head">
+        <h2>Imágenes <span class="count" id="count">(0)</span></h2>
+        <button class="link-btn" id="clearBtn" type="button" hidden>Vaciar lista</button>
+      </div>
+      <p class="empty" id="empty">Aún no hay imágenes. Las que añadas aparecerán aquí.</p>
+      <ul class="file-list" id="fileList"></ul>
+    </section>
+
+    <!-- Columna derecha: ajustes -->
+    <aside class="card settings" aria-label="Ajustes de compresión">
+      <h2>Ajustes de compresión</h2>
+
+      <div class="field">
+        <div class="field-row">
+          <label for="quality">Calidad</label>
+          <span class="value" id="qualityValue">80%</span>
+        </div>
+        <input type="range" id="quality" min="0" max="100" value="80">
+        <p class="hint" id="qualityHint">Menos calidad, archivo más ligero.</p>
+      </div>
+
+      <div class="field">
+        <span class="label" id="fmtLabel">Formato de salida</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="fmtLabel">
+          <input type="radio" name="fmt" id="fmtPng" value="image/png"><label for="fmtPng">PNG</label>
+          <input type="radio" name="fmt" id="fmtJpg" value="image/jpeg" checked><label for="fmtJpg">JPEG</label>
+          <input type="radio" name="fmt" id="fmtWebp" value="image/webp"><label for="fmtWebp">WebP</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="maxWidth">Ancho máximo (px)</label>
+        <input class="number" type="number" id="maxWidth" min="100" step="10" placeholder="Sin límite">
+      </div>
+
+      
+
+      <div class="actions">
+        <button class="btn" id="compressBtn" type="button" disabled>Comprimir imágenes</button>
+        <button class="btn btn-ghost" id="downloadBtn" type="button" disabled>Descargar todo (.zip)</button>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- Espacio publicitario inferior -->
+  <aside class="ad-container ad-bottom" aria-label="Publicidad">
+    <span class="ad-label">Publicidad</span>
+    <div class="ad-slot" id="ad-bottom" data-placeholder="Espacio para banner 728×90"></div>
+  </aside>
+
+  <p class="footer">Máximo recomendado: 20 MB por imagen.</p>
+</div>
+
+<script>
+// Solo comportamiento de interfaz: estado de arrastre y lista de archivos.
+// La lógica de compresión se conecta al botón #compressBtn.
+(function () {
+  var zone = document.getElementById('dropzone');
+  var input = document.getElementById('fileInput');
+  var list = document.getElementById('fileList');
+  var empty = document.getElementById('empty');
+  var count = document.getElementById('count');
+  var clearBtn = document.getElementById('clearBtn');
+  var compressBtn = document.getElementById('compressBtn');
+  var quality = document.getElementById('quality');
+  var qualityValue = document.getElementById('qualityValue');
+  var OK = ['image/png', 'image/jpeg', 'image/webp'];
+
+  // ---- Saneado y validación de entradas del usuario ----
+  var MAX_FILES = 50;
+  var MAX_FILE_BYTES = 30 * 1024 * 1024;
+  var MAX_PIXELS = 100e6;
+  var MAX_SIDE = 16384;                      // píxeles por lado
+  var MAX_TOTAL_BYTES = 300 * 1024 * 1024;   // suma de todos los archivos de la lista
+  var HEADER_BYTES = 1024 * 1024;            // solo se lee 1 MB para inspeccionar la cabecera
+  var totalBytes = 0;
+  var seen = Object.create(null);
+  var TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  // Caracteres de control, de ancho cero y de dirección de texto (permiten falsear nombres como "fotogpj.exe")
+  var CONTROL_CHARS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+  function sanitizeText(value, maxLen) {
+    var s = String(value == null ? '' : value).normalize('NFC').replace(CONTROL_CHARS, '');
+    s = s.replace(/\s+/g, ' ').trim();
+    var chars = Array.from(s);
+    if (chars.length > maxLen) s = chars.slice(0, maxLen - 1).join('') + '\u2026';
+    return s;
+  }
+
+  // Nombre seguro para mostrar. Siempre se inserta con textContent, nunca con innerHTML.
+  function displayName(file) { return sanitizeText(file.name, 120) || 'imagen'; }
+
+  // ---- Validación estricta de archivos subidos ----
+  var EXT_TYPE = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
+  var DANGEROUS_EXT = /^(exe|dll|bat|cmd|com|scr|msi|jar|js|mjs|vbs|ps1|sh|php\d?|phtml|asp|aspx|jsp|html?|xhtml|svg|swf|lnk|hta|pif|apk)$/i;
+
+  function fail(reason) { return { ok: false, reason: reason }; }
+  function u16be(b, i) { return (b[i] << 8) | b[i + 1]; }
+  function u16le(b, i) { return b[i] | (b[i + 1] << 8); }
+  function u32be(b, i) { return ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0; }
+  function u32le(b, i) { return (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0; }
+  function ascii(b, i, n) { var s = ''; for (var k = 0; k < n; k++) s += String.fromCharCode(b[i + k]); return s; }
+
+  // Lee la cabecera real y devuelve { type, width, height }, o null si no es un PNG, JPEG o WebP válido.
+  // Las dimensiones se obtienen SIN decodificar la imagen, para frenar bombas de descompresión.
+  function parseImageHeader(b, fileSize) {
+    if (b.length >= 24 && b[0] === 0x89 && ascii(b, 1, 3) === 'PNG' && b[4] === 0x0D && b[5] === 0x0A && b[6] === 0x1A && b[7] === 0x0A) {
+      if (ascii(b, 12, 4) !== 'IHDR' || u32be(b, 8) !== 13) return null;
+      return { type: 'image/png', width: u32be(b, 16), height: u32be(b, 20) };
+    }
+    if (b.length >= 4 && b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) {
+      var i = 2;
+      while (i + 9 < b.length) {
+        if (b[i] !== 0xFF) return null;
+        var m = b[i + 1];
+        if (m === 0xFF) { i++; continue; }
+        if (m === 0xDA || m === 0xD9) return null; // empieza la imagen sin haber leído su tamaño
+        if (m === 0x01 || (m >= 0xD0 && m <= 0xD8)) { i += 2; continue; }
+        var len = u16be(b, i + 2);
+        if (len < 2) return null;
+        if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) {
+          return { type: 'image/jpeg', height: u16be(b, i + 5), width: u16be(b, i + 7) };
+        }
+        i += 2 + len;
+      }
+      return null;
+    }
+    if (b.length >= 30 && ascii(b, 0, 4) === 'RIFF' && ascii(b, 8, 4) === 'WEBP') {
+      if (u32le(b, 4) + 8 > fileSize) return null; // tamaño RIFF incoherente: archivo truncado o manipulado
+      var kind = ascii(b, 12, 4);
+      if (kind === 'VP8X') return { type: 'image/webp', width: 1 + (b[24] | (b[25] << 8) | (b[26] << 16)), height: 1 + (b[27] | (b[28] << 8) | (b[29] << 16)) };
+      if (kind === 'VP8L' && b[20] === 0x2F) return { type: 'image/webp', width: 1 + (((b[22] & 0x3F) << 8) | b[21]), height: 1 + (((b[24] & 0x0F) << 10) | (b[23] << 2) | ((b[22] & 0xC0) >> 6)) };
+      if (kind === 'VP8 ' && b[23] === 0x9D && b[24] === 0x01 && b[25] === 0x2A) return { type: 'image/webp', width: u16le(b, 26) & 0x3FFF, height: u16le(b, 28) & 0x3FFF };
+    }
+    return null;
+  }
+
+  // Devuelve { ok: true } o { ok: false, reason }. Un archivo solo entra en la lista si pasa TODAS las comprobaciones.
+  async function validateFile(file) {
+    if (files.length >= MAX_FILES) return fail('ya hay ' + MAX_FILES + ' archivos en la lista');
+    if (!file.size) return fail('está vacío');
+    if (file.size > MAX_FILE_BYTES) return fail('supera los 30 MB');
+    if (totalBytes + file.size > MAX_TOTAL_BYTES) return fail('se superaría el total de 300 MB');
+
+    var raw = String(file.name || '');
+    if (raw.length > 255) return fail('el nombre es demasiado largo');
+    if (raw.replace(CONTROL_CHARS, '') !== raw) return fail('el nombre contiene caracteres no permitidos');
+    var parts = raw.split('.');
+    if (parts.length < 2) return fail('no tiene extensión');
+    var ext = parts.pop().trim().toLowerCase();
+    if (!EXT_TYPE[ext]) return fail('la extensión no es PNG, JPG ni WebP');
+    for (var p = 1; p < parts.length; p++) {
+      if (DANGEROUS_EXT.test(parts[p].trim())) return fail('tiene una doble extensión sospechosa');
+    }
+    if (file.type && file.type !== EXT_TYPE[ext]) return fail('la extensión no coincide con el tipo declarado');
+
+    if (!(await hasImageSignature(file))) return fail('su contenido no es una imagen PNG, JPEG ni WebP');
+    var head;
+    try { head = new Uint8Array(await file.slice(0, HEADER_BYTES).arrayBuffer()); }
+    catch (err) { return fail('no se pudo leer el archivo'); }
+    var info = parseImageHeader(head, file.size);
+    if (!info) return fail('la cabecera de la imagen no es válida');
+    if (info.type !== EXT_TYPE[ext]) {
+      return fail('es un ' + info.type.replace('image/', '').toUpperCase() + ' con extensión falsa (.' + ext + ')');
+    }
+    if (!info.width || !info.height) return fail('sus dimensiones no son válidas');
+    if (info.width > MAX_SIDE || info.height > MAX_SIDE) return fail('supera los 16 384 px por lado');
+    if (info.width * info.height > MAX_PIXELS) return fail('supera los 100 megapíxeles');
+
+    var fp = [raw, file.size, file.lastModified].join('|');
+    if (seen[fp]) return fail('ya está en la lista');
+    seen[fp] = true;
+    return { ok: true };
+  }
+
+  function clampInt(value, min, max) {
+    var n = parseInt(value, 10);
+    if (!isFinite(n)) return 0;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  // Comprueba los primeros bytes (firma real del archivo), no solo la extensión ni el tipo declarado.
+  function hasImageSignature(file) {
+    return file.slice(0, 12).arrayBuffer().then(function (buf) {
+      var b = new Uint8Array(buf);
+      var png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47;
+      var jpg = b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF;
+      var webp = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+                 b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+      return png || jpg || webp;
+    }).catch(function () { return false; });
+  }
+  var files = [];
+  var selected = null;
+  var loadToken = 0;
+  var notice = document.getElementById('notice');
+  var previewBox = document.getElementById('preview');
+  var canvas = document.getElementById('previewCanvas');
+  var pvName = document.getElementById('pvName');
+  var pvSize = document.getElementById('pvSize');
+  var pvDims = document.getElementById('pvDims');
+  var pvType = document.getElementById('pvType');
+
+  function markSelected() {
+    Array.prototype.forEach.call(list.children, function (li, i) {
+      li.classList.toggle('is-selected', files[i] === selected);
+    });
+  }
+
+  // Carga la imagen en un <canvas> a su resolución real y muestra sus datos.
+  function showPreview(file) {
+    selected = file;
+    markSelected();
+    var token = ++loadToken;
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      if (token !== loadToken) return; // se eligió otra imagen mientras cargaba
+      try {
+        if (img.naturalWidth * img.naturalHeight > MAX_PIXELS) throw new Error('Imagen demasiado grande');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      } catch (err) {
+        notice.textContent = 'La imagen es demasiado grande para mostrarla en el navegador.';
+        notice.hidden = false;
+        return;
+      }
+      pvName.textContent = displayName(file);
+      pvName.title = displayName(file);
+      pvSize.textContent = fmt(file.size);
+      pvDims.textContent = img.naturalWidth + ' × ' + img.naturalHeight + ' px';
+      pvType.textContent = file.type.replace('image/', '').toUpperCase();
+      showResult(file);
+      previewBox.hidden = false;
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      if (token !== loadToken) return;
+      notice.textContent = 'No se pudo leer «' + displayName(file) + '». Prueba con otro archivo.';
+      notice.hidden = false;
+    };
+    img.src = url;
+  }
+
+  function fmt(b) {
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(2) + ' MB';
+  }
+
+  function render() {
+    list.innerHTML = '';
+    files.forEach(function (f) {
+      var li = document.createElement('li');
+      li.className = 'file-item' + (f === selected ? ' is-selected' : '');
+      li.tabIndex = 0;
+      li.setAttribute('role', 'button');
+      li.addEventListener('click', function () { showPreview(f); });
+      li.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showPreview(f); }
+      });
+      var img = document.createElement('img');
+      img.className = 'thumb';
+      img.alt = '';
+      img.src = URL.createObjectURL(f);
+      img.onload = function () { URL.revokeObjectURL(img.src); };
+      var box = document.createElement('div');
+      box.style.minWidth = '0';
+      var n = document.createElement('p'); n.className = 'file-name'; n.textContent = displayName(f);
+      var m = document.createElement('p'); m.className = 'file-meta'; m.textContent = fmt(f.size) + ' · ' + f.type.replace('image/', '').toUpperCase();
+      box.appendChild(n); box.appendChild(m);
+      var s = document.createElement('span'); applyStatus(s, results.get(f));
+      var end = document.createElement('div'); end.className = 'row-end';
+      var dlb = document.createElement('button');
+      dlb.type = 'button'; dlb.className = 'dl-btn'; dlb.hidden = true;
+      dlb.title = 'Descargar imagen optimizada';
+      dlb.setAttribute('aria-label', 'Descargar ' + displayName(f) + ' optimizada');
+      dlb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>';
+      dlb.addEventListener('click', function (e) { e.stopPropagation(); downloadResult(f); });
+      dlb.addEventListener('keydown', function (e) { e.stopPropagation(); });
+      end.appendChild(s); end.appendChild(dlb);
+      li.appendChild(img); li.appendChild(box); li.appendChild(end);
+      applyStatus(s, results.get(f));
+      list.appendChild(li);
+    });
+    count.textContent = '(' + files.length + ')';
+    empty.hidden = files.length > 0;
+    clearBtn.hidden = files.length === 0;
+    compressBtn.disabled = files.length === 0;
+  }
+
+  async function add(fileList) {
+    var rejected = 0, first = null, reasons = [];
+    var incoming = Array.prototype.slice.call(fileList); // copia síncrona: el input se vacía justo después
+    for (var i = 0; i < incoming.length; i++) {
+      var f = incoming[i];
+      var check = await validateFile(f);
+      if (check.ok) { files.push(f); totalBytes += f.size; if (!first) first = f; }
+      else { rejected++; if (reasons.length < 3) reasons.push('«' + displayName(f) + '»: ' + check.reason); }
+    }
+    notice.hidden = rejected === 0;
+    if (rejected) {
+      notice.textContent = (rejected === 1 ? 'Se omitió 1 archivo: ' : 'Se omitieron ' + rejected + ' archivos: ') +
+        reasons.join('; ') + (rejected > reasons.length ? '; y ' + (rejected - reasons.length) + ' más.' : '.');
+    }
+    render();
+    if (first) showPreview(first);
+  }
+
+  ['dragenter', 'dragover'].forEach(function (e) {
+    zone.addEventListener(e, function (ev) { ev.preventDefault(); zone.classList.add('is-dragover'); });
+  });
+  ['dragleave', 'drop'].forEach(function (e) {
+    zone.addEventListener(e, function (ev) { ev.preventDefault(); zone.classList.remove('is-dragover'); });
+  });
+  zone.addEventListener('drop', function (ev) { add(ev.dataTransfer.files); });
+  input.addEventListener('change', function () { add(input.files); input.value = ''; });
+  clearBtn.addEventListener('click', function () {
+    files = []; selected = null; loadToken++; results.clear(); runId++;
+    totalBytes = 0; seen = Object.create(null);
+    updateZipButton();
+    previewBox.hidden = true; notice.hidden = true;
+    render();
+  });
+  quality.addEventListener('input', function () { qualityValue.textContent = quality.value + '%'; });
+  // ---- Compresión con canvas.toBlob() ----
+  var results = new Map();
+  var runId = 0, busy = false;
+  var maxWidth = document.getElementById('maxWidth');
+  var pvNew = document.getElementById('pvNew');
+  var pvSaved = document.getElementById('pvSaved');
+  var pvDownload = document.getElementById('pvDownload');
+  var qualityHint = document.getElementById('qualityHint');
+  var HINT = qualityHint.textContent;
+
+  function currentType() {
+    var checked = document.querySelector('input[name="fmt"]:checked');
+    return checked && TYPES.indexOf(checked.value) !== -1 ? checked.value : 'image/jpeg';
+  }
+
+  function updateControls() {
+    var png = currentType() === 'image/png';
+    quality.disabled = png;
+    qualityHint.textContent = png
+      ? 'PNG no pierde detalle, por eso no usa calidad. Para aligerarlo, reduce el ancho máximo.'
+      : HINT;
+  }
+
+  function applyStatus(el, r) {
+    var b = el.parentNode && el.parentNode.querySelector('.dl-btn');
+    if (b) b.hidden = !(r && !r.error);
+    updateZipButton();
+    el.className = 'status';
+    if (!r) { el.textContent = 'Pendiente'; return; }
+    if (r.error) { el.textContent = 'Error'; return; }
+    el.textContent = (r.saved >= 0 ? '−' : '+') + Math.abs(r.saved).toFixed(0) + '% · ' + fmt(r.size);
+    if (r.saved >= 0) el.classList.add('is-good');
+  }
+
+  function setStatus(f, text) {
+    var li = list.children[files.indexOf(f)];
+    if (li) li.querySelector('.status').textContent = text;
+  }
+
+  function showResult(f) {
+    var r = results.get(f);
+    pvSaved.className = '';
+    pvDownload.hidden = !(r && !r.error);
+    if (!r || r.error) { pvNew.textContent = r ? 'Error' : '-'; pvSaved.textContent = '-'; return; }
+    pvNew.textContent = fmt(r.size);
+    pvSaved.textContent = r.saved >= 0
+      ? r.saved.toFixed(1) + '% menos'
+      : Math.abs(r.saved).toFixed(1) + '% más pesado';
+    if (r.saved >= 0) pvSaved.className = 'is-good';
+  }
+
+  function resetResults() {
+    runId++;
+    results.clear();
+    Array.prototype.forEach.call(list.children, function (li) { applyStatus(li.querySelector('.status'), null); });
+    if (selected) showResult(selected);
+  }
+
+  function loadImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        if (img.naturalWidth * img.naturalHeight > MAX_PIXELS) { reject(new Error('Imagen demasiado grande')); return; }
+        resolve(img);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
+      img.src = url;
+    });
+  }
+
+  function toBlob(cv, type, q) {
+    return new Promise(function (resolve) { cv.toBlob(resolve, type, q); });
+  }
+
+  async function compressAll() {
+    if (busy || !files.length) return;
+    busy = true;
+    compressBtn.disabled = true;
+    compressBtn.textContent = 'Comprimiendo…';
+    notice.hidden = true;
+
+    var run = runId;
+    var type = currentType();
+    var q = Math.min(1, Math.max(0, Number(quality.value) / 100 || 0));
+    var maxW = clampInt(maxWidth.value, 0, 16384);
+    var fallback = false;
+    var batch = files.slice();
+
+    for (var i = 0; i < batch.length; i++) {
+      var f = batch[i];
+      if (results.has(f)) continue;
+      setStatus(f, 'Comprimiendo…');
+      var result;
+      try {
+        var img = await loadImage(f);
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (maxW > 0 && w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        var cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        var ctx = cv.getContext('2d');
+        if (type === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); } // JPEG no admite transparencia
+        ctx.drawImage(img, 0, 0, w, h);
+        var blob = await toBlob(cv, type, q);
+        cv.width = cv.height = 0; // libera la memoria del canvas
+        if (!blob) throw new Error('toBlob devolvió null');
+        if (blob.type !== type) fallback = true;
+        result = { blob: blob, size: blob.size, type: blob.type, saved: (1 - blob.size / f.size) * 100 };
+      } catch (err) {
+        result = { error: true };
+      }
+      if (run !== runId) break; // los ajustes cambiaron mientras se procesaba
+      results.set(f, result);
+      var li = list.children[files.indexOf(f)];
+      if (li) applyStatus(li.querySelector('.status'), result);
+      if (f === selected) showResult(f);
+    }
+
+    if (fallback && run === runId) {
+      notice.textContent = 'Tu navegador no puede generar ese formato y usó otro distinto. Prueba con JPEG o PNG.';
+      notice.hidden = false;
+    }
+    busy = false;
+    compressBtn.textContent = 'Comprimir imágenes';
+    compressBtn.disabled = files.length === 0;
+  }
+
+  // ---- Descarga individual ----
+  // Nombre final: <nombre-original>-optimizada.<extensión del formato generado>
+  function optimizedName(name, mime) {
+    var base = sanitizeText(name, 120).replace(/\.[^.]+$/, '').replace(/[<>:"\/\\|?*]/g, '_').replace(/^\.+/, '') || 'imagen';
+    if (!/-optimizada$/.test(base)) base += '-optimizada';
+    var ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }[mime] || 'png';
+    return base + '.' + ext;
+  }
+
+  async function downloadResult(f) {
+    var r = results.get(f);
+    if (!r || r.error) return;
+    return saveBlob(optimizedName(f.name, r.type), r.blob);
+  }
+
+  // Guarda un Blob: por la capacidad de descargas de Claude si existe; si no, con un enlace temporal.
+  async function saveBlob(name, blob) {
+    try {
+      // En la página publicada en claude.ai las descargas pasan por esta capacidad.
+      var dl = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('downloads') : null;
+      if (dl) { await dl.save({ filename: name, data: blob }); return; }
+    } catch (err) {
+      if (err && err.code === 'declined') return;
+      notice.textContent = 'No se pudo guardar la imagen. Inténtalo de nuevo.';
+      notice.hidden = false;
+      return;
+    }
+    // Navegador normal: descarga directa con un enlace temporal.
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  pvDownload.addEventListener('click', function () { if (selected) downloadResult(selected); });
+
+  // ---- Descargar todo (.zip) ----
+  var downloadBtn = document.getElementById('downloadBtn');
+  var ZIP_LABEL = downloadBtn.textContent;
+  var zipBusy = false;
+
+  function readyEntries() {
+    var out = [];
+    files.forEach(function (f) {
+      var r = results.get(f);
+      if (r && !r.error) out.push({ file: f, result: r });
+    });
+    return out;
+  }
+
+  function updateZipButton() {
+    if (zipBusy) return;
+    downloadBtn.disabled = readyEntries().length === 0;
+  }
+
+  // Evita nombres repetidos dentro del zip: foto-optimizada.webp, foto-optimizada-2.webp...
+  function uniqueName(name, used) {
+    var dot = name.lastIndexOf('.');
+    var base = name.slice(0, dot), ext = name.slice(dot), n = name, k = 2;
+    while (used[n.toLowerCase()]) { n = base + '-' + k + ext; k++; }
+    used[n.toLowerCase()] = true;
+    return n;
+  }
+
+  async function downloadZip() {
+    if (zipBusy) return;
+    var entries = readyEntries();
+    if (!entries.length) return;
+    if (typeof JSZip === 'undefined') {
+      notice.textContent = 'No se pudo cargar la herramienta de zip. Revisa tu conexión y recarga la página.';
+      notice.hidden = false;
+      return;
+    }
+    zipBusy = true;
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Preparando zip…';
+    try {
+      var zip = new JSZip();
+      var used = Object.create(null);
+      entries.forEach(function (e) {
+        zip.file(uniqueName(optimizedName(e.file.name, e.result.type), used), e.result.blob);
+      });
+      // Las imágenes ya están comprimidas: se almacenan sin recomprimir, que es más rápido.
+      var zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      await saveBlob('imagenes-optimizadas.zip', zipBlob);
+    } catch (err) {
+      notice.textContent = 'No se pudo crear el archivo zip. Inténtalo de nuevo.';
+      notice.hidden = false;
+    }
+    zipBusy = false;
+    downloadBtn.textContent = ZIP_LABEL;
+    updateZipButton();
+  }
+
+  downloadBtn.addEventListener('click', downloadZip);
+  compressBtn.addEventListener('click', compressAll);
+  quality.addEventListener('input', resetResults);
+  maxWidth.addEventListener('input', resetResults);
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="fmt"]'), function (r) {
+    r.addEventListener('change', function () { updateControls(); resetResults(); });
+  });
+  updateControls();
+
+  render();
+})();
+</script>
+</body>
+</html>
